@@ -1,6 +1,8 @@
 // ============================================
-// PROFIT HOUSE - ПОЛНЫЙ БЭКЕНД СЕРВЕР
+// PROFIT HOUSE - ПОЛНЫЙ БЭКЕНД СЕРВЕР (.env)
 // ============================================
+
+require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
@@ -9,19 +11,33 @@ const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 
 // ============================================
-// КОНФИГУРАЦИЯ
+// ПРОВЕРКА ПЕРЕМЕННЫХ
 // ============================================
 
+console.log('📌 Checking environment variables...');
+
 const PORT = process.env.PORT || 10000;
+const DATABASE_URL = process.env.DATABASE_URL;
+const JWT_SECRET = process.env.JWT_SECRET;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
-// ВАШ URI ОТ AIVEN
-const DATABASE_URL = 'postgres://avnadmin:AVNS_QsqjxXDyymYAoW92gYI@pg-1244683b-dakg617-3a45.e.aivencloud.com:10464/defaultdb?sslmode=require';
+console.log(`📌 DATABASE_URL: ${DATABASE_URL ? '✅ SET' : '❌ NOT SET'}`);
+console.log(`📌 JWT_SECRET: ${JWT_SECRET ? '✅ SET' : '❌ NOT SET'}`);
+console.log(`📌 ADMIN_EMAIL: ${ADMIN_EMAIL ? '✅ SET' : '❌ NOT SET'}`);
+console.log(`📌 ADMIN_PASSWORD: ${ADMIN_PASSWORD ? '✅ SET' : '❌ NOT SET'}`);
 
-const JWT_SECRET = 'profit_house_super_secret_key_2026_secure';
-const ADMIN_EMAIL = 'attackavgustov@proton.me';
-const ADMIN_PASSWORD = 'l39503950l';
+if (!DATABASE_URL) {
+  console.error('❌ ERROR: DATABASE_URL is not set!');
+  console.error('📝 Please add DATABASE_URL in .env file or Render environment variables');
+  process.exit(1);
+}
 
-console.log('📌 DATABASE_URL:', DATABASE_URL ? '✅ SET' : '❌ NOT SET');
+if (!JWT_SECRET) {
+  console.error('❌ ERROR: JWT_SECRET is not set!');
+  console.error('📝 Please add JWT_SECRET in .env file or Render environment variables');
+  process.exit(1);
+}
 
 // ============================================
 // ИНИЦИАЛИЗАЦИЯ
@@ -44,7 +60,7 @@ app.use(express.urlencoded({ extended: true }));
 // ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ
 // ============================================
 
-console.log('🔄 Connecting to Aiven PostgreSQL...');
+console.log('🔄 Connecting to database...');
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
@@ -60,7 +76,7 @@ const pool = new Pool({
 });
 
 pool.on('connect', () => {
-  console.log('✅ Connected to Aiven PostgreSQL database');
+  console.log('✅ Connected to database');
 });
 
 pool.on('error', (err) => {
@@ -117,6 +133,7 @@ async function initDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Users table ready');
 
     // --- INVESTMENTS ---
     await client.query(`
@@ -133,6 +150,7 @@ async function initDatabase() {
         date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Investments table ready');
 
     // --- TRANSACTIONS ---
     await client.query(`
@@ -146,6 +164,7 @@ async function initDatabase() {
         date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Transactions table ready');
 
     // --- WITHDRAWALS ---
     await client.query(`
@@ -160,6 +179,7 @@ async function initDatabase() {
         date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Withdrawals table ready');
 
     // --- PROJECTS ---
     await client.query(`
@@ -176,6 +196,7 @@ async function initDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Projects table ready');
 
     // --- FUNDS ---
     await client.query(`
@@ -188,6 +209,7 @@ async function initDatabase() {
         status VARCHAR(20) DEFAULT 'active'
       )
     `);
+    console.log('✅ Funds table ready');
 
     // --- TASKS ---
     await client.query(`
@@ -201,6 +223,7 @@ async function initDatabase() {
         status VARCHAR(20) DEFAULT 'active'
       )
     `);
+    console.log('✅ Tasks table ready');
 
     // --- DAILY PROJECTS ---
     await client.query(`
@@ -214,6 +237,7 @@ async function initDatabase() {
         date DATE DEFAULT CURRENT_DATE
       )
     `);
+    console.log('✅ Daily projects table ready');
 
     // --- DAILY TASKS ---
     await client.query(`
@@ -226,6 +250,7 @@ async function initDatabase() {
         date DATE DEFAULT CURRENT_DATE
       )
     `);
+    console.log('✅ Daily tasks table ready');
 
     // --- FEEDBACK ---
     await client.query(`
@@ -239,6 +264,7 @@ async function initDatabase() {
         date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Feedback table ready');
 
     // --- SETTINGS ---
     await client.query(`
@@ -248,6 +274,7 @@ async function initDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Settings table ready');
 
     console.log('✅ All tables created');
 
@@ -264,6 +291,8 @@ async function initDatabase() {
         VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, ['admin_' + Date.now(), 'Admin', ADMIN_EMAIL, hashedPassword, 'admin', 'ADMIN001', 'active']);
       console.log('✅ Admin created');
+    } else {
+      console.log('✅ Admin already exists');
     }
 
     // --- Settings ---
@@ -275,6 +304,8 @@ async function initDatabase() {
         ('site_settings', '{"name":"Profit House","currency":"RSD","min_deposit":12000,"max_deposit":160000,"min_withdraw":6000,"withdraw_fee":12,"early_fee":25,"cycle_days":14,"payout_hours":72}')
       `);
       console.log('✅ Settings inserted');
+    } else {
+      console.log('✅ Settings already exist');
     }
 
     // --- Projects ---
@@ -287,6 +318,8 @@ async function initDatabase() {
         ('Data Center', 'Data center infrastructure investment with maximum returns', '30,000 RSD', '35% ROI', 'Level 3', '14 days', 'https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=600&h=400&fit=crop', 'active')
       `);
       console.log('✅ Projects inserted');
+    } else {
+      console.log('✅ Projects already exist');
     }
 
     // --- Funds ---
@@ -299,6 +332,8 @@ async function initDatabase() {
         ('fund_003', 'Data Fund', 30000, 3.5, 'Refer a friend and get bonus', 'active')
       `);
       console.log('✅ Funds inserted');
+    } else {
+      console.log('✅ Funds already exist');
     }
 
     // --- Tasks ---
@@ -311,6 +346,8 @@ async function initDatabase() {
         ('task_003', 'Daily Check-in', 'Visit your cabinet and check your investment stats', 0.2, 'daily', ARRAY['Login to your cabinet', 'View your balance', 'Check active investments'], 'active')
       `);
       console.log('✅ Tasks inserted');
+    } else {
+      console.log('✅ Tasks already exist');
     }
 
     // --- Daily Tasks ---
@@ -322,11 +359,11 @@ async function initDatabase() {
         ('📢 Share & Earn', 'Share our platform on social media', 0.5, ARRAY['Open social media', 'Share the platform', 'Take a screenshot'], CURRENT_DATE)
       `);
       console.log('✅ Daily tasks inserted');
+    } else {
+      console.log('✅ Daily tasks already exist');
     }
 
     console.log('✅ Database initialized successfully!');
-    console.log(`📧 Admin: ${ADMIN_EMAIL}`);
-    console.log(`🔑 Password: ${ADMIN_PASSWORD}`);
 
   } catch (error) {
     console.error('❌ Database init error:', error);
@@ -372,17 +409,7 @@ app.get('/', (req, res) => {
     timestamp: new Date().toISOString(),
     message: 'Profit House API',
     version: '1.0.0',
-    endpoints: {
-      health: '/api/health',
-      register: '/api/register',
-      login: '/api/login',
-      verify: '/api/verify',
-      settings: '/api/settings',
-      investments: '/api/investments',
-      transactions: '/api/transactions',
-      sync: '/api/sync',
-      users: '/api/users'
-    }
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
@@ -392,8 +419,7 @@ app.get('/api/health', async (req, res) => {
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
-      database: 'connected',
-      provider: 'Aiven'
+      database: 'connected'
     });
   } catch (error) {
     res.status(500).json({
@@ -791,7 +817,7 @@ app.get('/api/admin/stats', authenticate, isAdmin, async (req, res) => {
   try {
     const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
     const totalInvestments = await pool.query('SELECT COUNT(*) FROM investments');
-    const totalDeposits = await pool.query('SELECT SUM(amount) FROM investments');
+    const totalDeposits = await pool.query('SELECT COALESCE(SUM(amount), 0) FROM investments');
     const pendingWithdrawals = await pool.query('SELECT COUNT(*) FROM withdrawals WHERE status = $1', ['pending']);
 
     res.json({
